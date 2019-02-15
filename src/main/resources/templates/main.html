@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main</title>
+    <script src="/webjars/jquery/dist/jquery.min.js"></script>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <script src='//cdnjs.cloudflare.com/ajax/libs/mustache.js/2.2.1/mustache.min.js'></script>
+    <link rel='stylesheet' href='//cdn.rawgit.com/google/code-prettify/master/styles/sons-of-obsidian.css'>
+    <script src="//cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js?autoload=true&amp;skin=sunburst&amp;lang=xml"></script>
+    <style>
+        div.left {
+            width: 10%;
+            float: left;
+            box-sizing: border-box;
+        }
+        div.right {
+            width: 90%;
+            float: right;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+{{=<% %>=}}
+<script id="theTmpl" type="x-tmpl-mustache">
+<div style="width:100%; height:200px; overflow:auto">
+    <table id="list" >
+        {{#data}}
+            <tr onclick="loadView(this);">
+                <td >{{csid}}</td>
+                <td style="display:none">{{message}}</td>
+            </tr>
+        {{/data}}
+    </table>
+</div>
+</script>
+<div class="left">
+
+</div>
+<div class="right">
+    <pre id="view" class="prettyprint"></pre>
+</div>
+
+<script>
+    var sock = new SockJS("/stomp-chat");
+    var client = Stomp.over(sock);
+    var template =  document.getElementById('theTmpl').innerHTML;
+    Mustache.parse(template);
+    $(function () {
+
+        client.debug = function (e) {
+        };
+
+        client.connect({}, function () {
+            client.subscribe('/subscribe/log', function (log) {
+                var logs = JSON.parse('{"data":'+log.body+'}');
+                var html = Mustache.render(template,logs);
+                $(".left").html(html);
+                loadView();
+                $("#view").html(PR.prettyPrintOne($("tbody > tr:first > td:last").html()));
+            });
+        });
+    });
+
+
+    function refresh() {
+        client.send('/publish/message', {});
+    }
+
+    function loadView(e) {
+        $("#view").html(PR.prettyPrintOne($(e).children().last().html()));
+    };
+</script>
+</body>
+</html>

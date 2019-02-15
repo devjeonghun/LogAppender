@@ -1,4 +1,4 @@
-package com.parfait.study.simplewebsocket.config;
+package com.lj.log.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
