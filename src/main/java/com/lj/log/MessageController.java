@@ -30,7 +30,7 @@ public class MessageController {
         template.convertAndSend("/subscribe/log", loglist);
     }
 
-    @Scheduled(fixedDelay = 3000)
+    @Scheduled(fixedDelay = 1000)
     public void pingLog() {
         if(StringUtils.isEmpty(preSize)){
             preSize=LogUtil.checkFile();
