@@ -1,7 +1,6 @@
 package com.lj.log.util;
 
 import com.lj.log.model.IbeLog;
-
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.w3c.dom.Document;
@@ -31,6 +30,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public final class LogUtil {
@@ -44,9 +45,15 @@ public final class LogUtil {
                 IbeLog log = new IbeLog();
                 log.setCsid(objJson.get("CSID").toString());
                 log.setMessage(Objects.isNull(objJson.get("RS_SOAP"))?toPrettyString(objJson.get("RQ_SOAP").toString(),4):toPrettyString(objJson.get("RS_SOAP").toString(),4));
+                log.setType(findType(log.getMessage()));
                 result.add(log);
             });
             Collections.reverse(result);
+            int seq = 0;
+            for(IbeLog temp:result){
+                temp.setSeq(seq);
+                seq++;
+            }
         } catch (IOException e) {
             IbeLog log = new IbeLog();
             log.setMessage("파일 로드에 실패 했습니다.");
@@ -132,5 +139,19 @@ public final class LogUtil {
 
         }
         return result;
+    }
+
+    public static String findType(String text){
+        try{
+            Pattern ptn = Pattern.compile("(\\:)(.*RQ|.*RS)");
+            Matcher matcher = ptn.matcher(text);
+
+            while(matcher.find()){
+                return matcher.group(2);
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }

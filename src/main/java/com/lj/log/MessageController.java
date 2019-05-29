@@ -1,7 +1,7 @@
 package com.lj.log;
 
-import com.lj.log.util.LogUtil;
 import com.lj.log.model.IbeLog;
+import com.lj.log.util.LogUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
 import java.util.List;
 
 @Profile("stomp")

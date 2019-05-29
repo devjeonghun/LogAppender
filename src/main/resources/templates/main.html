@@ -10,15 +10,68 @@
     <link rel='stylesheet' href='//cdn.rawgit.com/google/code-prettify/master/styles/sons-of-obsidian.css'>
     <script src="//cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js?autoload=true&amp;skin=sunburst&amp;lang=xml"></script>
     <style>
-        div.left {
-            width: 10%;
-            float: left;
-            box-sizing: border-box;
+        .selected {
+            color: black;
+            font-weight: bold;
         }
-        div.right {
-            width: 90%;
-            float: right;
-            box-sizing: border-box;
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            max-height: 100%;
+            font-family:Sans-serif;
+            line-height: 1.5em;
+            background: -webkit-linear-gradient(to right, #283E51, #4B79A1);  /* Chrome 10-25, Safari 5.1-6 */
+            background: linear-gradient(to right, #283E51, #4B79A1); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+        }
+
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            overflow: hidden; /* Disables scrollbars on the header frame. To enable scrollbars, change "hidden" to "scroll" */
+        }
+
+        #nav {
+            position: absolute;
+            top: 100px;
+            left: 0;
+            bottom: 0;
+            width: 230px;
+            overflow: auto; /* Scrollbars will appear on this frame only when there's enough content to require scrolling. To disable scrollbars, change to "hidden", or use "scroll" to enable permanent scrollbars */
+        }
+
+        #logo {
+            padding:10px;
+        }
+
+        main {
+            position: fixed;
+            top: 100px; /* Set this to the height of the header */
+            left: 230px;
+            right: 0;
+            bottom: 0;
+            overflow: auto;
+        }
+        .innertube {
+            margin: 15px; /* Provides padding for the content */
+        }
+        p {
+            color: #555;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav ul a {
+            color: darkgreen;
+            text-decoration: none;
         }
     </style>
 </head>
@@ -26,42 +79,71 @@
 <body>
 {{=<% %>=}}
 <script id="theTmpl" type="x-tmpl-mustache">
-<div style="width:100%; height:200px; overflow:auto">
+<div style="width:100%;overflow:auto">
     <table id="list" >
         {{#data}}
-            <tr onclick="loadView(this);">
-                <td >{{csid}}</td>
+            <tr seq={{seq}}>
+                <td >{{type}}</td>
                 <td style="display:none">{{message}}</td>
             </tr>
         {{/data}}
     </table>
 </div>
 </script>
-<div class="left">
 
-</div>
-<div class="right">
-    <pre id="view" class="prettyprint"></pre>
-</div>
+<header id="header">
+    <div id="logo">
+        IBE Log Appender
+        검색어 : <input type="text" id="keyword"/>
+        <input type="button" id="search" value="검색"/>
+        <input type="button" id="copy" value="복사"/>
+    </div>
+</header>
+
+<main>
+    <div class="innertube">
+        <pre id="view" seq="" class="prettyprint"></pre>
+    </div>
+</main>
+<nav id="nav">
+    <div class="innertube">
+
+    </div>
+</nav>
 
 <script>
     var sock = new SockJS("/stomp-chat");
     var client = Stomp.over(sock);
-    var template =  document.getElementById('theTmpl').innerHTML;
+    var template = document.getElementById('theTmpl').innerHTML;
     Mustache.parse(template);
+
+    var selectRow = function(){
+        $("#view").html(PR.prettyPrintOne($(this).children().last().html()));
+        $("#view").attr("seq",$(this).attr("seq"));
+        $(this).addClass("selected").siblings().removeClass("selected");
+    };
+
     $(function () {
+        $("#search").bind('click', function () {
+            findString($("#keyword").val());
+        });
+
+        $("#copy").click(function () {
+            copy($('#view').text());
+        });
 
         client.debug = function (e) {
         };
 
         client.connect({}, function () {
             client.subscribe('/subscribe/log', function (log) {
-                var logs = JSON.parse('{"data":'+log.body+'}');
-                var html = Mustache.render(template,logs);
-                $(".left").html(html);
-                loadView();
-                $("#view").html(PR.prettyPrintOne($("tbody > tr:first > td:last").html()));
+                var logs = JSON.parse('{"data":' + log.body + '}');
+                var html = Mustache.render(template, logs);
+                $("nav > .innertube").html(html);
+                $("tr").bind('click', selectRow);
+                $("tbody > tr:first").trigger('click');
             });
+            refresh();
         });
     });
 
@@ -70,9 +152,48 @@
         client.send('/publish/message', {});
     }
 
-    function loadView(e) {
-        $("#view").html(PR.prettyPrintOne($(e).children().last().html()));
+    var TRange = null;
+
+    function findString(str) {
+        if (parseInt(navigator.appVersion) < 4) return;
+        var strFound;
+        if (window.find) {
+            // CODE FOR BROWSERS THAT SUPPORT window.find
+            strFound = self.find(str);
+            if (strFound && self.getSelection && !self.getSelection().anchorNode) {
+                strFound = self.find(str)
+            }
+            if (!strFound) {
+                strFound = self.find(str, 0, 1)
+                while (self.find(str, 0, 1)) continue
+            }
+        } else if (navigator.appName.indexOf("Microsoft") != -1) {
+            // EXPLORER-SPECIFIC CODE
+            if (TRange != null) {
+                TRange.collapse(false)
+                strFound = TRange.findText(str)
+                if (strFound) TRange.select()
+            }
+            if (TRange == null || strFound == 0) {
+                TRange = self.document.body.createTextRange()
+                strFound = TRange.findText(str)
+                if (strFound) TRange.select()
+            }
+        } else if (navigator.appName == "Opera") {
+            alert("Opera browsers not supported, sorry...")
+            return;
+        }
+        return;
     };
+
+    function copy(val) {
+        var dummy = document.createElement("textarea");
+        document.body.appendChild(dummy);
+        dummy.value = val;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+    }
 </script>
 </body>
 </html>
